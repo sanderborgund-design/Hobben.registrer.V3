@@ -3,158 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Høbben - Innsjekking</title>
+    <title>Høbben - Medlemssystem</title>
     <style>
         :root {
-            --hobben-red: #e31b23; /* Juster denne til rød-fargen i logoen din */
-            --dark: #1a1a1a;
-            --light: #f4f4f4;
+            --hobben-red: #e31b23;
+            --dark: #121212;
+            --card: #1e1e1e;
+            --text: #ffffff;
+            --green: #2ecc71;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: var(--dark);
-            color: var(--light);
-            margin: 0;
+            color: var(--text);
             display: flex;
             justify-content: center;
+            min-height: 100vh;
+            margin: 0;
             padding: 20px;
         }
 
         .container {
-            background: #222;
+            background: var(--card);
             padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
             width: 100%;
             max-width: 500px;
             text-align: center;
+            border: 1px solid #333;
         }
 
-        .logo {
-            max-width: 150px;
-            margin-bottom: 20px;
-        }
-
-        h1 { color: var(--hobben-red); margin-bottom: 5px; }
-        p { margin-bottom: 25px; opacity: 0.8; }
-
+        .logo { max-width: 120px; margin-bottom: 15px; }
+        h1 { color: var(--hobben-red); margin: 0 0 10px 0; letter-spacing: 2px; }
+        
         input, select {
             width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 8px;
+            padding: 14px;
+            margin: 8px 0;
+            border-radius: 10px;
             border: 1px solid #444;
-            background: #333;
+            background: #282828;
             color: white;
             box-sizing: border-box;
+            font-size: 16px;
         }
 
         button {
             width: 100%;
-            padding: 15px;
-            margin-top: 15px;
+            padding: 16px;
+            margin-top: 10px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.3s;
             font-size: 16px;
+            transition: 0.2s ease;
         }
 
-        .btn-primary { background-color: var(--hobben-red); color: white; }
-        .btn-primary:hover { background-color: #b3151a; }
-        
-        .btn-secondary { background-color: #444; color: white; margin-top: 10px; }
+        .btn-primary { background: var(--hobben-red); color: white; }
+        .btn-primary:hover { background: #c1171d; transform: translateY(-2px); }
+        .btn-secondary { background: #333; color: #ccc; }
+        .btn-danger { background: #8e1a1a; color: white; font-size: 12px; padding: 8px; }
 
         .hidden { display: none; }
-
-        /* Admin Tabell */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-        th, td { border: 1px solid #444; padding: 10px; text-align: left; }
-        th { background: #333; }
         
-        .status-in { color: #2ecc71; font-weight: bold; }
-        .status-out { color: #e74c3c; font-weight: bold; }
+        /* Admin styling */
+        .admin-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 1000; overflow-y: auto; padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1a1a1a; }
+        th, td { padding: 12px; border: 1px solid #333; text-align: left; }
+        th { background: var(--hobben-red); color: white; }
+        
+        .badge { padding: 4px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; }
+        .badge-in { background: var(--green); color: black; }
+        .badge-out { background: #555; color: white; }
+
+        .search-box { border-bottom: 2px solid var(--hobben-red); margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <img src="logo.png" alt="Høbben Logo" class="logo">
+    <img src="logo.png" alt="Høbben Logo" class="logo" onerror="this.style.display='none'">
     <h1>HØBBEN</h1>
 
-    <div id="mainMenu">
-        <p>Velkommen til klubben! Vennligst sjekk inn eller ut.</p>
-        <button class="btn-primary" onclick="showView('loginView')">Logg inn / Sjekk inn</button>
-        <button class="btn-secondary" onclick="showView('registerView')">Ny bruker? Lag konto</button>
-        <button class="btn-secondary" style="margin-top: 50px; opacity: 0.5;" onclick="promptAdmin()">Admin Panel</button>
+    <div id="view-main">
+        <p>Velkommen! Vennligst registrer deg eller sjekk inn.</p>
+        <button class="btn-primary" onclick="showView('view-login')">SJEKK INN / UT</button>
+        <button class="btn-secondary" onclick="showView('view-register')">LAG NY KONTO</button>
+        <div style="margin-top: 40px;">
+            <button class="btn-secondary" style="width: auto; padding: 10px 20px; font-size: 12px;" onclick="checkAdmin()">Admin Panel</button>
+        </div>
     </div>
 
-    <div id="registerView" class="hidden">
-        <h2>Lag ny konto</h2>
-        <input type="text" id="regName" placeholder="Fullt navn">
-        <input type="date" id="regBirth" placeholder="Fødselsdato">
-        <input type="tel" id="regPhone1" placeholder="Nummer til foresatt 1 (Obligatorisk)">
-        <input type="tel" id="regPhone2" placeholder="Nummer til foresatt 2 (Valgfritt)">
-        <button class="btn-primary" onclick="registerUser()">Opprett konto</button>
-        <button class="btn-secondary" onclick="showView('mainMenu')">Tilbake</button>
+    <div id="view-register" class="hidden">
+        <h2>Ny Medlem</h2>
+        <input type="text" id="reg-name" placeholder="Fullt navn">
+        <input type="date" id="reg-birth" title="Fødselsdato">
+        <input type="tel" id="reg-p1" placeholder="Tlf foresatt 1 (Obligatorisk)">
+        <input type="tel" id="reg-p2" placeholder="Tlf foresatt 2 (Valgfritt)">
+        <button class="btn-primary" onclick="handleRegister()">OPPRETT KONTO</button>
+        <button class="btn-secondary" onclick="showView('view-main')">TILBAKE</button>
     </div>
 
-    <div id="loginView" class="hidden">
-        <h2>Sjekk inn / ut</h2>
-        <p>Finn navnet ditt i listen:</p>
-        <select id="userSelect">
-            <option value="">Velg navn...</option>
-        </select>
-        <button id="inBtn" class="btn-primary" onclick="toggleStatus(true)">SJEKK INN (KOMMER)</button>
-        <button id="outBtn" class="btn-secondary" onclick="toggleStatus(false)">SJEKK UT (GÅR)</button>
-        <button class="btn-secondary" onclick="showView('mainMenu')">Tilbake</button>
-    </div>
-
-    <div id="adminView" class="hidden" style="max-width: 1000px; width: 90vw; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #222; z-index: 100; overflow-y: auto; max-height: 90vh; padding: 20px; border-radius: 15px; border: 2px solid var(--hobben-red);">
-        <h2>Admin Panel</h2>
-        <p>Antall personer inne akkurat nå: <span id="countIn" style="font-size: 20px; font-weight: bold; color: var(--hobben-red);">0</span></p>
+    <div id="view-login" class="hidden">
+        <h2>Hvem er du?</h2>
+        <input type="text" id="user-search" placeholder="Søk på navnet ditt..." oninput="filterUsers()">
+        <select id="user-list" size="5"></select>
         
-        <table>
-            <thead>
-                <tr>
-                    <th>Navn</th>
-                    <th>Født</th>
-                    <th>Foresatte</th>
-                    <th>Status</th>
-                    <th>Handling</th>
-                </tr>
-            </thead>
-            <tbody id="adminTableBody"></tbody>
-        </table>
-        <button class="btn-secondary" onclick="location.reload()">Lukk Admin</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="btn-primary" style="background: var(--green); color: black;" onclick="updateStatus(true)">SJEKK INN</button>
+            <button class="btn-primary" onclick="updateStatus(false)">SJEKK UT</button>
+        </div>
+        <button class="btn-secondary" onclick="showView('view-main')">TILBAKE</button>
+    </div>
+
+    <div id="view-admin" class="admin-modal hidden">
+        <div style="max-width: 1000px; margin: 0 auto;">
+            <h1>ADMIN DASHBOARD</h1>
+            <div style="display: flex; justify-content: space-around; background: #222; padding: 20px; border-radius: 10px;">
+                <div>INNE NÅ: <span id="stat-in" style="color: var(--green); font-size: 24px; font-weight: bold;">0</span></div>
+                <div>TOTALT REGISTRERT: <span id="stat-total" style="font-size: 24px; font-weight: bold;">0</span></div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Navn</th>
+                        <th>Født</th>
+                        <th>Foresatte</th>
+                        <th>Status</th>
+                        <th>Handling</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-table"></tbody>
+            </table>
+            
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn-secondary" onclick="exportData()">Last ned backup (Excel/CSV)</button>
+                <button class="btn-primary" onclick="showView('view-main')">LUKK ADMIN</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    // Hent data fra LocalStorage eller start tom
-    let users = JSON.parse(localStorage.getItem('hobben_users')) || [];
+    // System-data
+    let users = JSON.parse(localStorage.getItem('hobben_db')) || [];
+    const ADMIN_PASS = "133769";
 
-    function save() {
-        localStorage.setItem('hobben_users', JSON.stringify(users));
-        updateUserList();
-        updateAdminTable();
+    // Navigasjon
+    function showView(id) {
+        document.querySelectorAll('.container > div, .admin-modal').forEach(el => el.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        if(id === 'view-login') filterUsers();
     }
 
-    function showView(viewId) {
-        document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
-        document.getElementById(viewId).classList.remove('hidden');
-    }
-
-    function registerUser() {
-        const name = document.getElementById('regName').value;
-        const birth = document.getElementById('regBirth').value;
-        const p1 = document.getElementById('regPhone1').value;
-        const p2 = document.getElementById('regPhone2').value;
+    // Registrering
+    function handleRegister() {
+        const name = document.getElementById('reg-name').value.trim();
+        const birth = document.getElementById('reg-birth').value;
+        const p1 = document.getElementById('reg-p1').value.trim();
+        const p2 = document.getElementById('reg-p2').value.trim();
 
         if(!name || !birth || !p1) {
-            alert("Vennligst fyll ut navn, fødselsdato og minst ett foreldrenummer.");
+            alert("Feil: Navn, fødselsdato og minst ett foreldrenummer må fylles ut!");
             return;
         }
 
@@ -162,98 +181,107 @@
             id: Date.now(),
             name: name,
             birth: birth,
-            parent1: p1,
-            parent2: p2,
-            isIn: false,
-            lastActivity: new Date().toLocaleString()
+            p1: p1,
+            p2: p2,
+            active: false,
+            joined: new Date().toLocaleDateString()
         };
 
         users.push(newUser);
-        save();
-        alert("Konto laget! Du kan nå sjekke inn.");
-        showView('mainMenu');
+        saveAndSync();
+        alert("Konto for " + name + " er opprettet!");
+        showView('view-main');
+    }
+
+    // Søk og Filter
+    function filterUsers() {
+        const search = document.getElementById('user-search').value.toLowerCase();
+        const list = document.getElementById('user-list');
+        list.innerHTML = "";
         
-        // Tøm felter
-        document.getElementById('regName').value = "";
-        document.getElementById('regBirth').value = "";
-        document.getElementById('regPhone1').value = "";
-        document.getElementById('regPhone2').value = "";
-    }
+        const filtered = users
+            .filter(u => u.name.toLowerCase().includes(search))
+            .sort((a,b) => a.name.localeCompare(b.name));
 
-    function updateUserList() {
-        const select = document.getElementById('userSelect');
-        select.innerHTML = '<option value="">Velg navn...</option>';
-        users.sort((a, b) => a.name.localeCompare(b.name)).forEach(user => {
-            const opt = document.createElement('option');
-            opt.value = user.id;
-            opt.textContent = user.name;
-            select.appendChild(opt);
+        filtered.forEach(u => {
+            const op = document.createElement('option');
+            op.value = u.id;
+            op.textContent = u.name + (u.active ? " (INNE)" : "");
+            list.appendChild(op);
         });
     }
 
-    function toggleStatus(status) {
-        const userId = document.getElementById('userSelect').value;
-        if(!userId) {
-            alert("Velg et navn først!");
-            return;
-        }
+    // Inn- og utsjekk
+    function updateStatus(status) {
+        const id = document.getElementById('user-list').value;
+        if(!id) return alert("Velg navnet ditt fra listen først!");
 
-        const user = users.find(u => u.id == userId);
-        user.isIn = status;
-        user.lastActivity = new Date().toLocaleString();
-        save();
-
-        if(status) {
-            alert("Velkommen inn, " + user.name + "!");
-        } else {
-            alert("Ha det bra, " + user.name + "! Husk å komme tilbake snart.");
-        }
-        showView('mainMenu');
+        const user = users.find(u => u.id == id);
+        user.active = status;
+        saveAndSync();
+        
+        alert(status ? "Velkommen inn, " + user.name : "Takk for besøket, " + user.name);
+        document.getElementById('user-search').value = "";
+        showView('view-main');
     }
 
-    function promptAdmin() {
-        const pass = prompt("Skriv inn admin-passord:");
-        if(pass === "133769") {
-            updateAdminTable();
-            showView('adminView');
+    // Admin Logikk
+    function checkAdmin() {
+        if(prompt("Passord for Admin:") === ADMIN_PASS) {
+            renderAdmin();
+            showView('view-admin');
         } else {
-            alert("Feil passord!");
+            alert("Feil passord.");
         }
     }
 
-    function updateAdminTable() {
-        const tbody = document.getElementById('adminTableBody');
+    function renderAdmin() {
+        const tbody = document.getElementById('admin-table');
         tbody.innerHTML = "";
-        let count = 0;
+        let inCount = 0;
 
-        users.forEach(user => {
-            if(user.isIn) count++;
-            const row = `
-                <tr>
-                    <td>${user.name}</td>
-                    <td>${user.birth}</td>
-                    <td>${user.parent1}${user.parent2 ? ' / ' + user.parent2 : ''}</td>
-                    <td class="${user.isIn ? 'status-in' : 'status-out'}">${user.isIn ? 'INNE' : 'UTE'}</td>
-                    <td><button onclick="deleteUser(${user.id})" style="background:none; color:red; border:none; cursor:pointer; font-weight:bold;">Slett</button></td>
-                </tr>
+        users.sort((a,b) => a.name.localeCompare(b.name)).forEach(u => {
+            if(u.active) inCount++;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${u.name}</td>
+                <td>${u.birth}</td>
+                <td>${u.p1}${u.p2 ? ' / '+u.p2 : ''}</td>
+                <td><span class="badge ${u.active ? 'badge-in':'badge-out'}">${u.active ? 'INNE':'UTE'}</span></td>
+                <td><button class="btn-danger" onclick="deleteUser(${u.id})">Slett</button></td>
             `;
-            tbody.innerHTML += row;
+            tbody.appendChild(tr);
         });
-        document.getElementById('countIn').textContent = count;
+
+        document.getElementById('stat-in').textContent = inCount;
+        document.getElementById('stat-total').textContent = users.length;
     }
 
     function deleteUser(id) {
-        const pass = prompt("For å slette kontoen må du skrive admin-passord (133769):");
-        if(pass === "133769") {
+        if(prompt("Skriv passord for å slette bruker:") === ADMIN_PASS) {
             users = users.filter(u => u.id !== id);
-            save();
-        } else {
-            alert("Feil passord. Sletting avbrutt.");
+            saveAndSync();
+            renderAdmin();
         }
     }
 
-    // Initialiser listene ved start
-    updateUserList();
+    function saveAndSync() {
+        localStorage.setItem('hobben_db', JSON.stringify(users));
+    }
+
+    // Backup-funksjon (Laster ned en CSV-fil som kan åpnes i Excel)
+    function exportData() {
+        let csv = "Navn,Fødselsdato,Foreldre 1,Foreldre 2,Status\n";
+        users.forEach(u => {
+            csv += `${u.name},${u.birth},${u.p1},${u.p2},${u.active ? 'INNE':'UTE'}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'hobben_medlemmer.csv');
+        a.click();
+    }
 </script>
 
 </body>
