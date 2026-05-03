@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Høbben - Innsjekking</title>
+    <style>
+        :root {
+            --hobben-red: #e31b23; /* Juster denne til rød-fargen i logoen din */
+            --dark: #1a1a1a;
+            --light: #f4f4f4;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark);
+            color: var(--light);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: #222;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .logo {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+
+        h1 { color: var(--hobben-red); margin-bottom: 5px; }
+        p { margin-bottom: 25px; opacity: 0.8; }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #333;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 16px;
+        }
+
+        .btn-primary { background-color: var(--hobben-red); color: white; }
+        .btn-primary:hover { background-color: #b3151a; }
+        
+        .btn-secondary { background-color: #444; color: white; margin-top: 10px; }
+
+        .hidden { display: none; }
+
+        /* Admin Tabell */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        th, td { border: 1px solid #444; padding: 10px; text-align: left; }
+        th { background: #333; }
+        
+        .status-in { color: #2ecc71; font-weight: bold; }
+        .status-out { color: #e74c3c; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <img src="logo.png" alt="Høbben Logo" class="logo">
+    <h1>HØBBEN</h1>
+
+    <div id="mainMenu">
+        <p>Velkommen til klubben! Vennligst sjekk inn eller ut.</p>
+        <button class="btn-primary" onclick="showView('loginView')">Logg inn / Sjekk inn</button>
+        <button class="btn-secondary" onclick="showView('registerView')">Ny bruker? Lag konto</button>
+        <button class="btn-secondary" style="margin-top: 50px; opacity: 0.5;" onclick="promptAdmin()">Admin Panel</button>
+    </div>
+
+    <div id="registerView" class="hidden">
+        <h2>Lag ny konto</h2>
+        <input type="text" id="regName" placeholder="Fullt navn">
+        <input type="date" id="regBirth" placeholder="Fødselsdato">
+        <input type="tel" id="regPhone1" placeholder="Nummer til foresatt 1 (Obligatorisk)">
+        <input type="tel" id="regPhone2" placeholder="Nummer til foresatt 2 (Valgfritt)">
+        <button class="btn-primary" onclick="registerUser()">Opprett konto</button>
+        <button class="btn-secondary" onclick="showView('mainMenu')">Tilbake</button>
+    </div>
+
+    <div id="loginView" class="hidden">
+        <h2>Sjekk inn / ut</h2>
+        <p>Finn navnet ditt i listen:</p>
+        <select id="userSelect">
+            <option value="">Velg navn...</option>
+        </select>
+        <button id="inBtn" class="btn-primary" onclick="toggleStatus(true)">SJEKK INN (KOMMER)</button>
+        <button id="outBtn" class="btn-secondary" onclick="toggleStatus(false)">SJEKK UT (GÅR)</button>
+        <button class="btn-secondary" onclick="showView('mainMenu')">Tilbake</button>
+    </div>
+
+    <div id="adminView" class="hidden" style="max-width: 1000px; width: 90vw; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #222; z-index: 100; overflow-y: auto; max-height: 90vh; padding: 20px; border-radius: 15px; border: 2px solid var(--hobben-red);">
+        <h2>Admin Panel</h2>
+        <p>Antall personer inne akkurat nå: <span id="countIn" style="font-size: 20px; font-weight: bold; color: var(--hobben-red);">0</span></p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Navn</th>
+                    <th>Født</th>
+                    <th>Foresatte</th>
+                    <th>Status</th>
+                    <th>Handling</th>
+                </tr>
+            </thead>
+            <tbody id="adminTableBody"></tbody>
+        </table>
+        <button class="btn-secondary" onclick="location.reload()">Lukk Admin</button>
+    </div>
+</div>
+
+<script>
+    // Hent data fra LocalStorage eller start tom
+    let users = JSON.parse(localStorage.getItem('hobben_users')) || [];
+
+    function save() {
+        localStorage.setItem('hobben_users', JSON.stringify(users));
+        updateUserList();
+        updateAdminTable();
+    }
+
+    function showView(viewId) {
+        document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
+        document.getElementById(viewId).classList.remove('hidden');
+    }
+
+    function registerUser() {
+        const name = document.getElementById('regName').value;
+        const birth = document.getElementById('regBirth').value;
+        const p1 = document.getElementById('regPhone1').value;
+        const p2 = document.getElementById('regPhone2').value;
+
+        if(!name || !birth || !p1) {
+            alert("Vennligst fyll ut navn, fødselsdato og minst ett foreldrenummer.");
+            return;
+        }
+
+        const newUser = {
+            id: Date.now(),
+            name: name,
+            birth: birth,
+            parent1: p1,
+            parent2: p2,
+            isIn: false,
+            lastActivity: new Date().toLocaleString()
+        };
+
+        users.push(newUser);
+        save();
+        alert("Konto laget! Du kan nå sjekke inn.");
+        showView('mainMenu');
+        
+        // Tøm felter
+        document.getElementById('regName').value = "";
+        document.getElementById('regBirth').value = "";
+        document.getElementById('regPhone1').value = "";
+        document.getElementById('regPhone2').value = "";
+    }
+
+    function updateUserList() {
+        const select = document.getElementById('userSelect');
+        select.innerHTML = '<option value="">Velg navn...</option>';
+        users.sort((a, b) => a.name.localeCompare(b.name)).forEach(user => {
+            const opt = document.createElement('option');
+            opt.value = user.id;
+            opt.textContent = user.name;
+            select.appendChild(opt);
+        });
+    }
+
+    function toggleStatus(status) {
+        const userId = document.getElementById('userSelect').value;
+        if(!userId) {
+            alert("Velg et navn først!");
+            return;
+        }
+
+        const user = users.find(u => u.id == userId);
+        user.isIn = status;
+        user.lastActivity = new Date().toLocaleString();
+        save();
+
+        if(status) {
+            alert("Velkommen inn, " + user.name + "!");
+        } else {
+            alert("Ha det bra, " + user.name + "! Husk å komme tilbake snart.");
+        }
+        showView('mainMenu');
+    }
+
+    function promptAdmin() {
+        const pass = prompt("Skriv inn admin-passord:");
+        if(pass === "133769") {
+            updateAdminTable();
+            showView('adminView');
+        } else {
+            alert("Feil passord!");
+        }
+    }
+
+    function updateAdminTable() {
+        const tbody = document.getElementById('adminTableBody');
+        tbody.innerHTML = "";
+        let count = 0;
+
+        users.forEach(user => {
+            if(user.isIn) count++;
+            const row = `
+                <tr>
+                    <td>${user.name}</td>
+                    <td>${user.birth}</td>
+                    <td>${user.parent1}${user.parent2 ? ' / ' + user.parent2 : ''}</td>
+                    <td class="${user.isIn ? 'status-in' : 'status-out'}">${user.isIn ? 'INNE' : 'UTE'}</td>
+                    <td><button onclick="deleteUser(${user.id})" style="background:none; color:red; border:none; cursor:pointer; font-weight:bold;">Slett</button></td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+        document.getElementById('countIn').textContent = count;
+    }
+
+    function deleteUser(id) {
+        const pass = prompt("For å slette kontoen må du skrive admin-passord (133769):");
+        if(pass === "133769") {
+            users = users.filter(u => u.id !== id);
+            save();
+        } else {
+            alert("Feil passord. Sletting avbrutt.");
+        }
+    }
+
+    // Initialiser listene ved start
+    updateUserList();
+</script>
+
+</body>
+</html>
